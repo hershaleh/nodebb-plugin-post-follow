@@ -6,6 +6,7 @@
 		{ "hook": "static:app.load", "method": "init" },
 		{ "hook": "filter:admin.header.build", "method": "addAdminNav" },
 		{ "hook": "filter:user.profileMenu", "method": "addProfileMenu" },
+		{ "hook": "filter:user.notificationTypes", "method": "addNotificationType" },
 		{ "hook": "filter:user.customSettings", "method": "addCustomSettings" },
 		{ "hook": "filter:user.saveSettings", "method": "saveCustomSettings" },
 		{ "hook": "action:post.save", "method": "onPostSave" },

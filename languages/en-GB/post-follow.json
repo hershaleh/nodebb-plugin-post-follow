@@ -25,5 +25,10 @@
 	"admin-heading": "Post Follow settings",
 	"admin-min-edit-chars": "Minimum edit size (characters)",
 	"admin-min-edit-chars-help": "Edits that change fewer characters than this are treated as tiny and do not notify followers. Set 0 to notify about every edit. Default: 3.",
+	"admin-max-followed": "Maximum followed posts per user",
+	"admin-max-followed-help": "The most posts a single user can follow at the same time. Set 0 for no limit. Default: 500.",
+	"admin-max-followed-why-title": "Why limit this?",
+	"admin-max-followed-why": "Every followed post is stored in the database and checked each time that post changes. A limit stops one user (or a script) from following huge numbers of posts, which would bloat the database and slow the forum down. A user who reaches the limit must unfollow a post before following another, and automatic following of own posts simply stops. Existing follows are never removed.",
+	"limit-reached": "You can follow up to %1 posts. Unfollow a post to follow another.",
 	"admin-saved": "Settings saved"
 }

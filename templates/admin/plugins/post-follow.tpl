@@ -12,6 +12,17 @@
 						<input type="number" min="0" step="1" id="minEditChars" data-key="minEditChars" class="form-control" placeholder="{defaultMinEditChars}">
 						<p class="form-text">[[post-follow:admin-min-edit-chars-help]]</p>
 					</div>
+
+					<div class="mb-3">
+						<label class="form-label" for="maxFollowedPosts">
+							[[post-follow:admin-max-followed]]
+							<button type="button" class="btn btn-link p-0 ms-1 align-baseline text-decoration-none" data-bs-toggle="popover" data-bs-trigger="hover focus" data-bs-placement="top" data-bs-title="[[post-follow:admin-max-followed-why-title]]" data-bs-content="[[post-follow:admin-max-followed-why]]" aria-label="[[post-follow:admin-max-followed-why-title]]">
+								<i class="fa-regular fa-circle-question"></i>
+							</button>
+						</label>
+						<input type="number" min="0" step="1" id="maxFollowedPosts" data-key="maxFollowedPosts" class="form-control" placeholder="{defaultMaxFollowedPosts}">
+						<p class="form-text">[[post-follow:admin-max-followed-help]]</p>
+					</div>
 				</div>
 			</form>
 		</div>
