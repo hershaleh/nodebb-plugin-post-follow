@@ -1,0 +1,23 @@
+{
+	"name": "nodebb-plugin-post-follow",
+	"version": "1.0.0",
+	"description": "Follow a single post and get notified only when that post is edited, without watching the whole topic.",
+	"main": "library.js",
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/hershaleh/nodebb-plugin-post-follow.git"
+	},
+	"keywords": [
+		"nodebb",
+		"plugin",
+		"post",
+		"follow",
+		"watch",
+		"notifications",
+		"edit"
+	],
+	"license": "MIT",
+	"nbbpm": {
+		"compatibility": "^4.0.0"
+	}
+}

@@ -1,0 +1,17 @@
+{
+	"id": "nodebb-plugin-post-follow",
+	"url": "https://github.com/hershaleh/nodebb-plugin-post-follow",
+	"library": "./library.js",
+	"hooks": [
+		{ "hook": "static:app.load", "method": "init" },
+		{ "hook": "filter:post.tools", "method": "addPostTool" },
+		{ "hook": "action:post.edit", "method": "onPostEdit" },
+		{ "hook": "action:posts.purge", "method": "onPostsPurge" }
+	],
+	"scripts": [
+		"public/client.js"
+	],
+	"languages": "languages",
+	"defaultLang": "en-GB",
+	"compatibility": "^4.0.0"
+}

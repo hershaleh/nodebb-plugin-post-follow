@@ -1,0 +1,7 @@
+{
+	"follow-post": "Follow this post",
+	"unfollow-post": "Unfollow this post",
+	"now-following": "You will be notified when this post is edited.",
+	"stopped-following": "You will no longer be notified about edits to this post.",
+	"notification-edited": "<strong>%1</strong> edited a post you follow in <strong>%2</strong>"
+}
