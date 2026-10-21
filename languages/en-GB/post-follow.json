@@ -1,7 +1,29 @@
 {
 	"follow-post": "Follow this post",
 	"unfollow-post": "Unfollow this post",
-	"now-following": "You will be notified when this post is edited.",
-	"stopped-following": "You will no longer be notified about edits to this post.",
-	"notification-edited": "<strong>%1</strong> edited a post you follow in <strong>%2</strong>"
+	"now-following": "You are now following this post",
+	"stopped-following": "You stopped following this post",
+	"options": "Follow settings",
+	"event-edit": "Follow edits",
+	"event-delete": "Follow deletion",
+	"event-restore": "Follow restoration",
+	"need-one-event": "Select at least one type of update, or unfollow the post.",
+
+	"notification-edited": "<strong>%1</strong> edited a post you follow in <strong>%2</strong>",
+	"notification-deleted": "<strong>%1</strong> deleted a post you follow in <strong>%2</strong>",
+	"notification-restored": "<strong>%1</strong> restored a post you follow in <strong>%2</strong>",
+
+	"profile-menu": "Followed posts",
+	"page-title": "Posts I follow",
+	"no-followed-posts": "You are not following any posts yet.",
+
+	"settings-title": "Post follow",
+	"setting-auto-follow": "Automatically follow the posts I write",
+	"setting-auto-events": "Notify me about these changes to my posts:",
+
+	"admin-title": "Post Follow",
+	"admin-heading": "Post Follow settings",
+	"admin-min-edit-chars": "Minimum edit size (characters)",
+	"admin-min-edit-chars-help": "Edits that change fewer characters than this are treated as tiny and do not notify followers. Set 0 to notify about every edit. Default: 3.",
+	"admin-saved": "Settings saved"
 }

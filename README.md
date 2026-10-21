@@ -6,44 +6,48 @@
 
 # nodebb-plugin-post-follow
 
-Follow a **single post** instead of a whole topic, and get notified only when that post is edited.
+Follow a **single post** instead of a whole topic, and get notified only when that post is edited, deleted or restored.
 
-## How it works
+## Features
 
-- Adds a **"Follow this post"** item to the three-dots menu of every post. Once followed, the item becomes **"Unfollow this post"**.
-- When a followed post's content is edited, every follower gets a notification that links straight to that post.
-- The editor never notifies themselves, and followers who can no longer read the topic are skipped.
-- Follow data is removed when a post is permanently deleted.
+- **Bell button next to the reply button** of every post (icon only). Click it to follow or unfollow the post. A short toast confirms the change; nothing is added to the notifications list.
+- **Per-post settings.** While a post is followed, a small arrow appears next to the bell. It opens a menu where you choose any combination of: *Follow edits*, *Follow deletion*, *Follow restoration* (at least one must stay selected; new follows start with edits only).
+- **"Posts I follow" page** in your profile (visible only to you), with the same bell and settings on every item.
+- **Follow my own posts automatically**, with a choice of events, in your account settings.
+- **Ignore tiny edits.** Admins set a minimum edit size in *ACP → Plugins → Post Follow*. Edits that change fewer characters (default: 3) do not notify followers. Set 0 to notify about every edit.
 
-Unlike topic watching, you are not notified about replies or about edits to other posts in the topic.
+The editor never notifies themselves, and followers who can no longer read the topic are skipped. Follow data is removed when a post is permanently deleted or when the user is deleted.
+
+Unlike topic watching, you are not notified about replies or about other posts in the topic.
 
 ### Interaction with topic watching
 
-NodeBB core already sends an edit notification to everyone who watches the whole topic. To avoid duplicates, this plugin skips users who:
+NodeBB core already sends an edit notification to everyone who watches the whole topic. To avoid duplicates, this plugin skips *edit* notifications for users who:
 
 - watch the topic **and**
 - have the core "When a post is edited in a watched topic" notification type enabled.
 
-A user who watches the topic but turned that notification type off, or who does not watch the topic at all, still receives the notifications of this plugin for the posts they explicitly follow. This is what makes "all replies in the topic, plus edits of this one post" possible.
+A user who watches the topic but turned that notification type off, or who does not watch the topic at all, still receives this plugin's notifications for the posts they explicitly follow. This is what makes "all replies in the topic, plus edits of this one post" possible. Deletion and restoration notifications are only sent by this plugin, so they are never skipped.
 
 ## Installation
 
-```bash
-npm install nodebb-plugin-post-follow
-```
-
-Or, from a git checkout:
+The plugin is not published on npm. Install it straight from GitHub:
 
 ```bash
 cd /path/to/nodebb
-npm install /path/to/nodebb-plugin-post-follow
+npm install github:hershaleh/nodebb-plugin-post-follow
 ```
 
-Then activate the plugin in the ACP (Extend → Plugins) and rebuild/restart NodeBB.
+Then activate it in the ACP (Extend → Plugins) and rebuild and restart NodeBB:
+
+```bash
+./nodebb build
+./nodebb restart
+```
 
 ## Compatibility
 
-Written for NodeBB 4.x (checked against the 4.16 source).
+Written for NodeBB 4.x (checked against the 4.16 source) and the Bootstrap 5 based default theme (Harmony). The bell button is added to the post actions bar next to the reply button.
 
 ## Languages
 

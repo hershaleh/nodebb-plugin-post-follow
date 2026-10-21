@@ -1,28 +1,147 @@
 'use strict';
 
-/* globals $, socket, require */
+/* globals $, app, socket, require */
 
 $(document).ready(function () {
-	$(document).on('click', '[component="post/follow-post"]', function (e) {
-		e.preventDefault();
-		const pid = $(this).parents('[data-pid]').attr('data-pid');
-		if (!pid) {
-			return;
+	require(['hooks', 'alerts'], function (hooks, alerts) {
+		const EVENTS = ['edit', 'delete', 'restore'];
+		const DEFAULT_PREFS = { edit: true, delete: false, restore: false };
+
+		// ---- widget state -------------------------------------------------
+
+		function applyState(widget, state) {
+			const following = !!state.following;
+			const toggle = widget.find('[component="post-follow/toggle"]');
+
+			toggle.attr('aria-pressed', following ? 'true' : 'false');
+			toggle.attr('title', widget.attr(following ? 'data-title-unfollow' : 'data-title-follow'));
+			toggle.find('i')
+				.toggleClass('fa-solid', following)
+				.toggleClass('fa-regular', !following);
+
+			widget.find('[component="post-follow/options"]').toggleClass('hidden', !following);
+			if (!following) {
+				widget.find('[component="post-follow/menu"]').removeClass('show');
+			}
+
+			const prefs = state.prefs || DEFAULT_PREFS;
+			EVENTS.forEach(function (event) {
+				widget.find('input[data-event="' + event + '"]').prop('checked', !!prefs[event]);
+			});
 		}
 
-		socket.emit('plugins.postFollow.toggle', { pid: pid }, function (err, res) {
-			require(['alerts'], function (alerts) {
+		function readPrefs(widget) {
+			const prefs = {};
+			EVENTS.forEach(function (event) {
+				prefs[event] = widget.find('input[data-event="' + event + '"]').is(':checked');
+			});
+			return prefs;
+		}
+
+		// ---- injecting the bell next to the reply button ------------------
+
+		async function renderWidget(postEl, state) {
+			postEl = $(postEl);
+			postEl.attr('data-post-follow', 'done');
+
+			const actions = postEl.find('[component="post/actions"]').first();
+			if (!actions.length || actions.find('[component="post-follow/widget"]').length) {
+				return;
+			}
+
+			const prefs = state.prefs || DEFAULT_PREFS;
+			const html = await app.parseAndTranslate('partials/post-follow/wrap', {
+				posts: [{
+					pid: postEl.attr('data-pid'),
+					pfFollowing: !!state.following,
+					pfEdit: !!prefs.edit,
+					pfDelete: !!prefs.delete,
+					pfRestore: !!prefs.restore,
+				}],
+			});
+
+			const reply = actions.find('[component="post/reply"]').first();
+			if (reply.length) {
+				reply.after(html);
+			} else {
+				actions.prepend(html);
+			}
+		}
+
+		function scan() {
+			if (!app.user || !app.user.uid) {
+				return;
+			}
+			const postEls = $('[component="topic"] [component="post"][data-pid]').filter(function () {
+				return !$(this).attr('data-post-follow');
+			}).toArray();
+			if (!postEls.length) {
+				return;
+			}
+			postEls.forEach(function (el) {
+				$(el).attr('data-post-follow', 'pending');
+			});
+
+			const pids = postEls.map(function (el) {
+				return $(el).attr('data-pid');
+			});
+			socket.emit('plugins.postFollow.getStates', { pids: pids }, function (err, res) {
+				if (err) {
+					// Allow a retry on the next scan.
+					postEls.forEach(function (el) {
+						$(el).removeAttr('data-post-follow');
+					});
+					return;
+				}
+				postEls.forEach(function (el) {
+					const state = (res.states && res.states[$(el).attr('data-pid')]) ||
+						{ following: false, prefs: DEFAULT_PREFS };
+					renderWidget(el, state);
+				});
+			});
+		}
+
+		hooks.on('action:ajaxify.end', scan);
+		hooks.on('action:posts.loaded', scan);
+		scan();
+
+		// ---- interactions ---------------------------------------------------
+
+		// Bell: follow / unfollow. Only a toast is shown, nothing is added to the notifications list.
+		$(document).on('click', '[component="post-follow/toggle"]', function (e) {
+			e.preventDefault();
+			const widget = $(this).closest('[component="post-follow/widget"]');
+			socket.emit('plugins.postFollow.toggle', { pid: widget.attr('data-pid') }, function (err, res) {
 				if (err) {
 					return alerts.error(err);
 				}
-				alerts.success(res.following ?
-					'[[post-follow:now-following]]' :
-					'[[post-follow:stopped-following]]');
+				applyState(widget, res);
+				alerts.success(res.following ? '[[post-follow:now-following]]' : '[[post-follow:stopped-following]]', 3000);
 			});
+		});
 
-			// Force the three-dots menu to reload so the label reflects the new state.
-			$('[data-pid="' + pid + '"] [component="post/tools"] .dropdown-menu')
-				.removeAttr('data-loaded').html('');
+		// Arrow: choose which events to follow (at least one).
+		$(document).on('click', '[component="post-follow/options"]', function (e) {
+			e.preventDefault();
+		});
+
+		$(document).on('change', '[component="post-follow/menu"] input[data-event]', function () {
+			const input = $(this);
+			const widget = input.closest('[component="post-follow/widget"]');
+			const prefs = readPrefs(widget);
+
+			if (!EVENTS.some(function (event) { return prefs[event]; })) {
+				input.prop('checked', true);
+				return alerts.warning('[[post-follow:need-one-event]]', 4000);
+			}
+
+			socket.emit('plugins.postFollow.setPrefs', Object.assign({ pid: widget.attr('data-pid') }, prefs), function (err, res) {
+				if (err) {
+					input.prop('checked', !input.is(':checked'));
+					return alerts.error(err);
+				}
+				applyState(widget, res);
+			});
 		});
 	});
 });

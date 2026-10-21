@@ -1,7 +1,29 @@
 {
 	"follow-post": "עקוב אחר פוסט זה",
 	"unfollow-post": "הפסק מעקב אחר פוסט זה",
-	"now-following": "תקבל התראה כאשר פוסט זה יערך.",
-	"stopped-following": "לא תקבל עוד התראות על עריכות של פוסט זה.",
-	"notification-edited": "<strong>%1</strong> ערך פוסט שאתה עוקב אחריו ב-<strong>%2</strong>"
+	"now-following": "אתה עוקב עכשיו אחרי הפוסט הזה",
+	"stopped-following": "הפסקת לעקוב אחרי הפוסט הזה",
+	"options": "הגדרות מעקב",
+	"event-edit": "מעקב אחרי עריכה",
+	"event-delete": "מעקב אחרי מחיקה",
+	"event-restore": "מעקב אחרי שחזור",
+	"need-one-event": "יש לבחור לפחות סוג עדכון אחד, או להפסיק לעקוב אחרי הפוסט.",
+
+	"notification-edited": "<strong>%1</strong> ערך פוסט שאתה עוקב אחריו ב-<strong>%2</strong>",
+	"notification-deleted": "<strong>%1</strong> מחק פוסט שאתה עוקב אחריו ב-<strong>%2</strong>",
+	"notification-restored": "<strong>%1</strong> שחזר פוסט שאתה עוקב אחריו ב-<strong>%2</strong>",
+
+	"profile-menu": "פוסטים במעקב",
+	"page-title": "הפוסטים שאני עוקב אחריהם",
+	"no-followed-posts": "אתה עדיין לא עוקב אחרי פוסטים.",
+
+	"settings-title": "מעקב אחרי פוסטים",
+	"setting-auto-follow": "עקוב אוטומטית אחרי הפוסטים שכתבתי",
+	"setting-auto-events": "הודע לי על השינויים הבאים בפוסטים שלי:",
+
+	"admin-title": "מעקב אחרי פוסטים",
+	"admin-heading": "הגדרות מעקב אחרי פוסטים",
+	"admin-min-edit-chars": "גודל עריכה מינימלי (תווים)",
+	"admin-min-edit-chars-help": "עריכות ששינו פחות תווים מהערך הזה נחשבות זעירות ולא ישלחו התראה לעוקבים. הערך 0 שולח התראה על כל עריכה. ברירת מחדל: 3.",
+	"admin-saved": "ההגדרות נשמרו"
 }

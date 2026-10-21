@@ -4,13 +4,24 @@
 	"library": "./library.js",
 	"hooks": [
 		{ "hook": "static:app.load", "method": "init" },
-		{ "hook": "filter:post.tools", "method": "addPostTool" },
+		{ "hook": "filter:admin.header.build", "method": "addAdminNav" },
+		{ "hook": "filter:user.profileMenu", "method": "addProfileMenu" },
+		{ "hook": "filter:user.customSettings", "method": "addCustomSettings" },
+		{ "hook": "filter:user.saveSettings", "method": "saveCustomSettings" },
+		{ "hook": "action:post.save", "method": "onPostSave" },
 		{ "hook": "action:post.edit", "method": "onPostEdit" },
-		{ "hook": "action:posts.purge", "method": "onPostsPurge" }
+		{ "hook": "action:post.delete", "method": "onPostDelete" },
+		{ "hook": "action:post.restore", "method": "onPostRestore" },
+		{ "hook": "action:posts.purge", "method": "onPostsPurge" },
+		{ "hook": "static:user.delete", "method": "onUserDelete" }
 	],
 	"scripts": [
 		"public/client.js"
 	],
+	"acpScripts": [
+		"public/admin.js"
+	],
+	"templates": "templates",
 	"languages": "languages",
 	"defaultLang": "en-GB",
 	"compatibility": "^4.0.0"
