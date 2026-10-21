@@ -82,6 +82,7 @@ Plugin.onPostEdit = async function (hookData) {
 
 	const tid = post.tid || (post.topic && post.topic.tid);
 	followers = await privileges.topics.filterUids('topics:read', tid, followers);
+	followers = await skipUsersCoveredByCore(tid, followers);
 	if (!followers.length) {
 		return;
 	}
@@ -107,6 +108,31 @@ Plugin.onPostEdit = async function (hookData) {
 		notifications.push(notification, followers);
 	}
 };
+
+// NodeBB core already sends an edit notification to users who watch the whole topic,
+// as long as their "post-edit" notification type is not set to "none".
+// Skip those users to avoid duplicates. A topic watcher who turned post-edit
+// notifications off still gets ours, because they explicitly followed this post.
+async function skipUsersCoveredByCore(tid, uids) {
+	if (!uids.length) {
+		return uids;
+	}
+	const topicFollowers = new Set((await topics.getFollowers(tid)).map(String));
+	const watchers = uids.filter(uid => topicFollowers.has(String(uid)));
+	if (!watchers.length) {
+		return uids;
+	}
+
+	const settings = await user.getMultipleUserSettings(watchers);
+	const covered = new Set();
+	settings.forEach((userSettings) => {
+		const setting = userSettings['notificationType_post-edit'] || 'notification';
+		if (setting !== 'none') {
+			covered.add(String(userSettings.uid));
+		}
+	});
+	return uids.filter(uid => !covered.has(String(uid)));
+}
 
 // Cleans up follow data of permanently deleted posts.
 Plugin.onPostsPurge = async function (hookData) {
