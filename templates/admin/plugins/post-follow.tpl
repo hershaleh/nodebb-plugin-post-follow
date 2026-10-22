@@ -14,12 +14,12 @@
 					</div>
 
 					<div class="mb-3">
-						<label class="form-label" for="maxFollowedPosts">
-							{{tx("post-follow:admin-max-followed")}}
-							<button type="button" class="btn btn-link p-0 ms-1 align-baseline text-decoration-none" data-bs-toggle="popover" data-bs-trigger="hover focus" data-bs-placement="top" data-bs-title="{{tx("post-follow:admin-max-followed-why-title")}}" data-bs-content="{{tx("post-follow:admin-max-followed-why")}}" aria-label="{{tx("post-follow:admin-max-followed-why-title")}}">
+						<div class="d-flex align-items-center gap-1 mb-2">
+							<label class="form-label mb-0" for="maxFollowedPosts">{{tx("post-follow:admin-max-followed")}}</label>
+							<button type="button" class="btn btn-link p-0 text-decoration-none lh-1" data-bs-toggle="popover" data-bs-trigger="hover focus" data-bs-placement="top" data-bs-title="{{tx("post-follow:admin-max-followed-why-title")}}" data-bs-content="{{tx("post-follow:admin-max-followed-why")}}" aria-label="{{tx("post-follow:admin-max-followed-why-title")}}">
 								<i class="fa-regular fa-circle-question"></i>
 							</button>
-						</label>
+						</div>
 						<input type="number" min="0" step="1" id="maxFollowedPosts" data-key="maxFollowedPosts" class="form-control" placeholder="{defaultMaxFollowedPosts}">
 						<p class="form-text">{{tx("post-follow:admin-max-followed-help")}}</p>
 					</div>
