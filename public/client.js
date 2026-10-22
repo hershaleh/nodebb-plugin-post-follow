@@ -1,6 +1,6 @@
 'use strict';
 
-/* globals $, app, socket, require */
+/* globals $, app, socket, ajaxify, require */
 
 $(document).ready(function () {
 	require(['hooks', 'alerts'], function (hooks, alerts) {
@@ -101,9 +101,36 @@ $(document).ready(function () {
 			});
 		}
 
+		// ---- profile sidebar: put the link between "watched categories" and "watched tags" ----
+
+		function placeProfileLink() {
+			const link = $('a#followed-posts.plugin-link').first();
+			if (!link.length || link.attr('data-pf-placed')) {
+				return;
+			}
+			const categories = link.siblings('a[href$="/categories"]').first();
+			if (!categories.length) {
+				return; // a theme without this sidebar: keep the default position
+			}
+
+			const onPage = !!(ajaxify.data && ajaxify.data.template && ajaxify.data.template['account/followed-posts']);
+			const count = ajaxify.data && ajaxify.data.counts ? ajaxify.data.counts.followedPosts : undefined;
+			const label = $.trim(link.find('div').first().text());
+
+			link.attr('class', categories.attr('class').replace(/\bactive\b/g, '').trim());
+			link.toggleClass('active', onPage);
+			link.empty()
+				.append($('<div class="flex-grow-1"></div>').text(label))
+				.append(count === undefined ? '' : $('<span class="flex-shrink-0 text-xs"></span>').attr('title', count).text(count));
+			link.attr('data-pf-placed', '1');
+			link.insertAfter(categories);
+		}
+
 		hooks.on('action:ajaxify.end', scan);
+		hooks.on('action:ajaxify.end', placeProfileLink);
 		hooks.on('action:posts.loaded', scan);
 		scan();
+		placeProfileLink();
 
 		// ---- interactions ---------------------------------------------------
 

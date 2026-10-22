@@ -1,11 +1,11 @@
 <!-- IMPORT partials/account/header.tpl -->
 
 <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
-	<h3 class="fw-semibold fs-5 mb-0">[[post-follow:page-title]]</h3>
+	<h3 class="fw-semibold fs-5 mb-0">{{tx("post-follow:page-title")}}</h3>
 </div>
 
 {{{ if !posts.length }}}
-<div class="alert alert-warning text-center">[[post-follow:no-followed-posts]]</div>
+<div class="alert alert-warning text-center">{{tx("post-follow:no-followed-posts")}}</div>
 {{{ end }}}
 
 <ul component="posts" class="posts-list list-unstyled">

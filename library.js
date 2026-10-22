@@ -479,9 +479,13 @@ function renderAutoFollowSettings(settings) {
 }
 
 Plugin.addCustomSettings = async function (data) {
+	// The content is raw HTML that NodeBB does not translate, so translate it here
+	// in the language of the user who is viewing the page.
+	const viewerSettings = await user.getSettings(data.uid);
+	const language = (viewerSettings && viewerSettings.userLang) || meta.config.defaultLang || 'en-GB';
 	data.customSettings.push({
 		title: '[[post-follow:settings-title]]',
-		content: renderAutoFollowSettings(data.settings || {}),
+		content: await translator.translate(renderAutoFollowSettings(data.settings || {}), language),
 	});
 	return data;
 };
@@ -522,6 +526,16 @@ Plugin.addProfileMenu = async function (data) {
 		},
 	});
 	return data;
+};
+
+// Lets the profile sidebar show the number of followed posts (own profile only).
+Plugin.addProfileCounts = async function (hookData) {
+	const { userData, callerUID } = hookData;
+	if (userData && parseInt(callerUID, 10) > 0 && parseInt(callerUID, 10) === parseInt(userData.uid, 10)) {
+		userData.counts = userData.counts || {};
+		userData.counts.followedPosts = await db.sortedSetCard(userPostsKey(userData.uid));
+	}
+	return hookData;
 };
 
 function toSnippet(html) {
