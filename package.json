@@ -1,6 +1,6 @@
 {
 	"name": "nodebb-plugin-post-follow",
-	"version": "1.2.2",
+	"version": "1.2.3",
 	"description": "Follow a single post and get notified when it is edited, deleted or restored, without watching the whole topic.",
 	"main": "library.js",
 	"repository": {

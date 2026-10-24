@@ -20,9 +20,9 @@
 	"scripts": [
 		"public/client.js"
 	],
-	"acpScripts": [
-		"public/admin.js"
-	],
+	"modules": {
+		"../admin/plugins/post-follow.js": "public/admin.js"
+	},
 	"templates": "templates",
 	"languages": "languages",
 	"defaultLang": "en-GB",
