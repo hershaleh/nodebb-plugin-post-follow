@@ -11,6 +11,7 @@
 		{ "hook": "filter:user.customSettings", "method": "addCustomSettings" },
 		{ "hook": "filter:user.saveSettings", "method": "saveCustomSettings" },
 		{ "hook": "action:post.save", "method": "onPostSave" },
+		{ "hook": "action:post.bookmark", "method": "onPostBookmark" },
 		{ "hook": "action:post.edit", "method": "onPostEdit" },
 		{ "hook": "action:post.delete", "method": "onPostDelete" },
 		{ "hook": "action:post.restore", "method": "onPostRestore" },

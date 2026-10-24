@@ -3,7 +3,7 @@
 /* globals $, app, socket, ajaxify, require */
 
 $(document).ready(function () {
-	require(['hooks', 'alerts'], function (hooks, alerts) {
+	require(['hooks', 'alerts', 'modals'], function (hooks, alerts, modals) {
 		const EVENTS = ['edit', 'delete', 'restore'];
 		const DEFAULT_PREFS = { edit: true, delete: false, restore: false };
 
@@ -169,6 +169,30 @@ $(document).ready(function () {
 				}
 				applyState(widget, res);
 			});
+		});
+
+		// Followed-posts page: bulk unfollow buttons.
+		function bulk(method, confirmText) {
+			modals.confirm(confirmText, function (ok) {
+				if (!ok) {
+					return;
+				}
+				socket.emit('plugins.postFollow.' + method, {}, function (err, res) {
+					if (err) {
+						return alerts.error(err);
+					}
+					alerts.success('[[post-follow:unfollowed-count, ' + res.count + ']]', 3000);
+					ajaxify.refresh();
+				});
+			});
+		}
+
+		$(document).on('click', '[component="post-follow/unfollow-all"]', function () {
+			bulk('unfollowAll', '[[post-follow:unfollow-all-confirm, ' + $(this).attr('data-count') + ']]');
+		});
+
+		$(document).on('click', '[component="post-follow/unfollow-unavailable"]', function () {
+			bulk('unfollowUnavailable', '[[post-follow:unfollow-unavailable-confirm]]');
 		});
 	});
 });

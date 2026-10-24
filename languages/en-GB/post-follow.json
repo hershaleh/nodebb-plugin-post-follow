@@ -8,19 +8,15 @@
 	"event-delete": "Follow deletion",
 	"event-restore": "Follow restoration",
 	"need-one-event": "Select at least one type of update, or unfollow the post.",
-
 	"notification-edited": "<strong>%1</strong> edited a post you follow in <strong>%2</strong>",
 	"notification-deleted": "<strong>%1</strong> deleted a post you follow in <strong>%2</strong>",
 	"notification-restored": "<strong>%1</strong> restored a post you follow in <strong>%2</strong>",
-
 	"profile-menu": "Followed posts",
 	"page-title": "Posts I follow",
 	"no-followed-posts": "You are not following any posts yet.",
-
 	"settings-title": "Post follow",
 	"setting-auto-follow": "Automatically follow the posts I write",
-	"setting-auto-events": "Notify me about these changes to my posts:",
-
+	"setting-auto-events": "Notify me about these changes to automatically followed posts:",
 	"admin-title": "Post Follow",
 	"admin-heading": "Post Follow settings",
 	"admin-min-edit-chars": "Minimum edit size (characters)",
@@ -30,5 +26,22 @@
 	"admin-max-followed-why-title": "Why limit this?",
 	"admin-max-followed-why": "Every followed post is stored in the database and checked each time that post changes. A limit stops one user (or a script) from following huge numbers of posts, which would bloat the database and slow the forum down. A user who reaches the limit must unfollow a post before following another, and automatic following of own posts simply stops. Existing follows are never removed.",
 	"limit-reached": "You can follow up to %1 posts. Unfollow a post to follow another.",
-	"admin-saved": "Settings saved"
+	"admin-saved": "Settings saved",
+	"setting-auto-follow-reply": "Automatically follow posts I reply to or quote",
+	"setting-auto-follow-bookmark": "Automatically follow posts I bookmark",
+	"filter-all-categories": "All categories",
+	"filter-topic-placeholder": "Search topic title",
+	"filter-apply": "Filter",
+	"filter-clear": "Clear",
+	"filter-no-results": "No followed posts match the filter.",
+	"badge-post-deleted": "Post deleted",
+	"badge-topic-deleted": "Topic deleted",
+	"badge-topic-locked": "Topic locked",
+	"unfollow-all": "Unfollow all",
+	"unfollow-all-confirm": "Stop following all %1 posts?",
+	"unfollow-unavailable": "Unfollow deleted / locked",
+	"unfollow-unavailable-confirm": "Stop following posts that were deleted or whose topic is deleted or locked?",
+	"unfollowed-count": "Stopped following %1 posts",
+	"admin-exempt-groups": "Groups exempt from the limit",
+	"admin-exempt-groups-help": "Members of the selected groups can follow an unlimited number of posts."
 }

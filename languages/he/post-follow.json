@@ -8,19 +8,15 @@
 	"event-delete": "מעקב אחרי מחיקה",
 	"event-restore": "מעקב אחרי שחזור",
 	"need-one-event": "יש לבחור לפחות סוג עדכון אחד, או להפסיק לעקוב אחרי הפוסט.",
-
 	"notification-edited": "<strong>%1</strong> ערך פוסט שאתה עוקב אחריו ב-<strong>%2</strong>",
 	"notification-deleted": "<strong>%1</strong> מחק פוסט שאתה עוקב אחריו ב-<strong>%2</strong>",
 	"notification-restored": "<strong>%1</strong> שחזר פוסט שאתה עוקב אחריו ב-<strong>%2</strong>",
-
 	"profile-menu": "פוסטים במעקב",
 	"page-title": "הפוסטים שאני עוקב אחריהם",
 	"no-followed-posts": "אתה עדיין לא עוקב אחרי פוסטים.",
-
 	"settings-title": "מעקב אחרי פוסטים",
 	"setting-auto-follow": "עקוב אוטומטית אחרי הפוסטים שכתבתי",
-	"setting-auto-events": "הודע לי על השינויים הבאים בפוסטים שלי:",
-
+	"setting-auto-events": "התראה על השינויים האלה בפוסטים שנעקבים אוטומטית:",
 	"admin-title": "מעקב אחרי פוסטים",
 	"admin-heading": "הגדרות מעקב אחרי פוסטים",
 	"admin-min-edit-chars": "גודל עריכה מינימלי (תווים)",
@@ -30,5 +26,22 @@
 	"admin-max-followed-why-title": "למה להגביל?",
 	"admin-max-followed-why": "כל פוסט במעקב נשמר במסד הנתונים ונבדק בכל פעם שהוא משתנה. הגבלה מונעת ממשתמש אחד (או מסקריפט) לעקוב אחרי מספר עצום של פוסטים, מה שינפח את מסד הנתונים ויאט את הפורום. משתמש שהגיע למגבלה צריך להפסיק לעקוב אחרי פוסט כדי לעקוב אחרי אחר, והמעקב האוטומטי אחרי פוסטים שלו פשוט נעצר. מעקבים קיימים אף פעם לא נמחקים.",
 	"limit-reached": "אפשר לעקוב אחרי עד %1 פוסטים. הפסק לעקוב אחרי פוסט כדי לעקוב אחרי אחר.",
-	"admin-saved": "ההגדרות נשמרו"
+	"admin-saved": "ההגדרות נשמרו",
+	"setting-auto-follow-reply": "עקוב אוטומטית אחרי פוסטים שאני מגיב להם או מצטט",
+	"setting-auto-follow-bookmark": "עקוב אוטומטית אחרי פוסטים שאני שומר בסימניות",
+	"filter-all-categories": "כל הקטגוריות",
+	"filter-topic-placeholder": "חיפוש בכותרת הנושא",
+	"filter-apply": "סנן",
+	"filter-clear": "נקה",
+	"filter-no-results": "אין פוסטים במעקב שמתאימים לסינון.",
+	"badge-post-deleted": "הפוסט נמחק",
+	"badge-topic-deleted": "הנושא נמחק",
+	"badge-topic-locked": "הנושא נעול",
+	"unfollow-all": "הפסק לעקוב אחרי הכול",
+	"unfollow-all-confirm": "להפסיק לעקוב אחרי כל %1 הפוסטים?",
+	"unfollow-unavailable": "הפסק מעקב אחרי מחוקים / נעולים",
+	"unfollow-unavailable-confirm": "להפסיק לעקוב אחרי פוסטים שנמחקו או שהנושא שלהם נמחק או נעול?",
+	"unfollowed-count": "הפסקת לעקוב אחרי %1 פוסטים",
+	"admin-exempt-groups": "קבוצות פטורות מההגבלה",
+	"admin-exempt-groups-help": "חברי הקבוצות שנבחרו יכולים לעקוב אחרי מספר בלתי מוגבל של פוסטים."
 }

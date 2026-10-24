@@ -9,7 +9,7 @@
 
 					<div class="mb-3">
 						<label class="form-label" for="minEditChars">{{tx("post-follow:admin-min-edit-chars")}}</label>
-						<input type="number" min="0" step="1" id="minEditChars" data-key="minEditChars" class="form-control" placeholder="{defaultMinEditChars}">
+						<input type="number" min="0" step="1" id="minEditChars" name="minEditChars" data-key="minEditChars" class="form-control" placeholder="{defaultMinEditChars}">
 						<p class="form-text">{{tx("post-follow:admin-min-edit-chars-help")}}</p>
 					</div>
 
@@ -20,8 +20,18 @@
 								<i class="fa-regular fa-circle-question"></i>
 							</button>
 						</div>
-						<input type="number" min="0" step="1" id="maxFollowedPosts" data-key="maxFollowedPosts" class="form-control" placeholder="{defaultMaxFollowedPosts}">
+						<input type="number" min="0" step="1" id="maxFollowedPosts" name="maxFollowedPosts" data-key="maxFollowedPosts" class="form-control" placeholder="{defaultMaxFollowedPosts}">
 						<p class="form-text">{{tx("post-follow:admin-max-followed-help")}}</p>
+					</div>
+
+					<div class="mb-3">
+						<label class="form-label" for="exemptGroups">{{tx("post-follow:admin-exempt-groups")}}</label>
+						<select id="exemptGroups" name="exemptGroups" class="form-select" multiple size="6">
+							{{{ each groups }}}
+							<option value="{./name}">{./displayName}</option>
+							{{{ end }}}
+						</select>
+						<p class="form-text">{{tx("post-follow:admin-exempt-groups-help")}}</p>
 					</div>
 				</div>
 			</form>

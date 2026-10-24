@@ -8,6 +8,8 @@ const meta = require.main.require('./src/meta');
 const topics = require.main.require('./src/topics');
 const user = require.main.require('./src/user');
 const posts = require.main.require('./src/posts');
+const groups = require.main.require('./src/groups');
+const categories = require.main.require('./src/categories');
 const utils = require.main.require('./src/utils');
 const privileges = require.main.require('./src/privileges');
 const notifications = require.main.require('./src/notifications');
@@ -28,12 +30,18 @@ const DEFAULT_MIN_EDIT_CHARS = 3;
 const DEFAULT_MAX_FOLLOWED_POSTS = 500;
 const MAX_PIDS_PER_QUERY = 200;
 
+// Per-user settings (stored next to the other user settings).
+// own / reply / bookmark: when to follow a post automatically.
+// edit / delete / restore: which events an automatically followed post notifies about.
 const AUTO_FOLLOW_FIELDS = {
-	enabled: 'postFollowAuto',
+	own: 'postFollowAuto',
+	reply: 'postFollowAutoReply',
+	bookmark: 'postFollowAutoBookmark',
 	edit: 'postFollowAutoEdit',
 	delete: 'postFollowAutoDelete',
 	restore: 'postFollowAutoRestore',
 };
+const AUTO_FOLLOW_TRIGGERS = ['own', 'reply', 'bookmark'];
 
 // Data model:
 //   post-follow:pid:<pid>:followers   set         uids that follow the post
@@ -95,6 +103,17 @@ async function unfollowPost(uid, pid) {
 	]);
 }
 
+async function unfollowPosts(uid, pids) {
+	if (!pids.length) {
+		return;
+	}
+	await Promise.all([
+		db.setsRemove(pids.map(followersKey), uid),
+		db.sortedSetRemove(userPostsKey(uid), pids),
+		db.deleteAll(pids.map(pid => prefsKey(pid, uid))),
+	]);
+}
+
 async function cleanupPost(pid) {
 	const followers = await db.getSetMembers(followersKey(pid));
 	await Promise.all([
@@ -102,6 +121,50 @@ async function cleanupPost(pid) {
 		followers.length ? db.sortedSetsRemove(followers.map(userPostsKey), pid) : null,
 		followers.length ? db.deleteAll(followers.map(uid => prefsKey(pid, uid))) : null,
 	]);
+}
+
+// ---------------------------------------------------------------------------
+// Admin settings
+// ---------------------------------------------------------------------------
+
+// Reads a non-negative integer setting, falling back to `fallback` when it is empty or invalid.
+function toNonNegativeInt(value, fallback) {
+	const number = parseInt(value, 10);
+	return Number.isNaN(number) || number < 0 ? fallback : number;
+}
+
+// A multi-select is saved by the ACP as a JSON string, but accept a real array as well.
+function parseGroupList(value) {
+	let list = value;
+	if (typeof list === 'string') {
+		try {
+			list = JSON.parse(list);
+		} catch (err) {
+			list = [];
+		}
+	}
+	return Array.isArray(list) ? list.map(String).filter(Boolean) : [];
+}
+
+async function getAdminSettings() {
+	const settings = (await meta.settings.get(SETTINGS_HASH)) || {};
+	return {
+		minEditChars: toNonNegativeInt(settings.minEditChars, DEFAULT_MIN_EDIT_CHARS),
+		maxFollowedPosts: toNonNegativeInt(settings.maxFollowedPosts, DEFAULT_MAX_FOLLOWED_POSTS),
+		exemptGroups: parseGroupList(settings.exemptGroups),
+	};
+}
+
+// True when the user may not follow another post (0 = no limit, exempt groups are never limited).
+async function hasReachedFollowLimit(uid) {
+	const { maxFollowedPosts, exemptGroups } = await getAdminSettings();
+	if (maxFollowedPosts <= 0) {
+		return false;
+	}
+	if (exemptGroups.length && await groups.isMemberOfAny(uid, exemptGroups)) {
+		return false;
+	}
+	return (await db.sortedSetCard(userPostsKey(uid))) >= maxFollowedPosts;
 }
 
 // ---------------------------------------------------------------------------
@@ -125,6 +188,13 @@ Plugin.init = async function (params) {
 	// Admin settings page.
 	routeHelpers.setupAdminPageRoute(router, '/admin/plugins/post-follow', renderAdminPage);
 };
+
+function requireUid(socket) {
+	if (!socket.uid) {
+		throw new Error('[[error:not-logged-in]]');
+	}
+	return socket.uid;
+}
 
 function registerSocketMethods() {
 	SocketPlugins.postFollow = {};
@@ -162,11 +232,8 @@ function registerSocketMethods() {
 
 	// Follow / unfollow a single post.
 	SocketPlugins.postFollow.toggle = async function (socket, data) {
-		const uid = socket.uid;
+		const uid = requireUid(socket);
 		const pid = parsePid(data && data.pid);
-		if (!uid) {
-			throw new Error('[[error:not-logged-in]]');
-		}
 		if (!pid) {
 			throw new Error('[[error:invalid-data]]');
 		}
@@ -200,11 +267,8 @@ function registerSocketMethods() {
 
 	// Choose which events (edit / delete / restore) of a followed post notify the user.
 	SocketPlugins.postFollow.setPrefs = async function (socket, data) {
-		const uid = socket.uid;
+		const uid = requireUid(socket);
 		const pid = parsePid(data && data.pid);
-		if (!uid) {
-			throw new Error('[[error:not-logged-in]]');
-		}
 		if (!pid) {
 			throw new Error('[[error:invalid-data]]');
 		}
@@ -223,6 +287,26 @@ function registerSocketMethods() {
 		}
 		await db.setObject(prefsKey(pid, uid), serializePrefs(prefs));
 		return { following: true, prefs };
+	};
+
+	// Stop following every post.
+	SocketPlugins.postFollow.unfollowAll = async function (socket) {
+		const uid = requireUid(socket);
+		const pids = await db.getSortedSetRange(userPostsKey(uid), 0, -1);
+		await unfollowPosts(uid, pids);
+		return { count: pids.length };
+	};
+
+	// Stop following posts that were deleted, or whose topic was deleted or locked.
+	SocketPlugins.postFollow.unfollowUnavailable = async function (socket) {
+		const uid = requireUid(socket);
+		const pids = await db.getSortedSetRange(userPostsKey(uid), 0, -1);
+		const info = await loadPostInfo(pids);
+		const unavailable = info
+			.filter(entry => !entry.exists || entry.deleted || entry.topicDeleted || entry.topicLocked)
+			.map(entry => entry.pid);
+		await unfollowPosts(uid, unavailable);
+		return { count: unavailable.length };
 	};
 }
 
@@ -246,29 +330,6 @@ function changeSize(oldText, newText) {
 		endB -= 1;
 	}
 	return Math.max(endA - start, endB - start);
-}
-
-// Reads a non-negative integer setting, falling back to `fallback` when it is empty or invalid.
-function toNonNegativeInt(value, fallback) {
-	const number = parseInt(value, 10);
-	return Number.isNaN(number) || number < 0 ? fallback : number;
-}
-
-async function getAdminSettings() {
-	const settings = (await meta.settings.get(SETTINGS_HASH)) || {};
-	return {
-		minEditChars: toNonNegativeInt(settings.minEditChars, DEFAULT_MIN_EDIT_CHARS),
-		maxFollowedPosts: toNonNegativeInt(settings.maxFollowedPosts, DEFAULT_MAX_FOLLOWED_POSTS),
-	};
-}
-
-// True when the user may not follow another post (0 = no limit).
-async function hasReachedFollowLimit(uid) {
-	const { maxFollowedPosts } = await getAdminSettings();
-	if (maxFollowedPosts <= 0) {
-		return false;
-	}
-	return (await db.sortedSetCard(userPostsKey(uid))) >= maxFollowedPosts;
 }
 
 // NodeBB core already sends an edit notification to users who watch the whole topic,
@@ -296,6 +357,16 @@ async function skipUsersCoveredByCore(tid, uids) {
 	return uids.filter(uid => !covered.has(String(uid)));
 }
 
+// A follower who still has an unread notification about the same event on the same post
+// is not notified again until they have read it (reading moves it out of the unread list).
+async function skipUsersWithUnreadNotification(uids, nid) {
+	if (!uids.length) {
+		return uids;
+	}
+	const scores = await db.sortedSetsScore(uids.map(uid => `uid:${uid}:notifications:unread`), nid);
+	return uids.filter((uid, i) => scores[i] === null || scores[i] === undefined);
+}
+
 // Sends a notification about `event` to every follower of the post that asked for it.
 async function notifyFollowers({ pid, tid, event, actorUid, path }) {
 	if (!pid || !tid) {
@@ -315,6 +386,11 @@ async function notifyFollowers({ pid, tid, event, actorUid, path }) {
 	}
 
 	followers = await privileges.topics.filterUids('topics:read', tid, followers);
+
+	// One notification per post and event, whoever caused it.
+	const nid = `post-follow:${event}:${pid}`;
+	followers = await skipUsersWithUnreadNotification(followers, nid);
+
 	if (event === 'edit') {
 		followers = await skipUsersCoveredByCore(tid, followers);
 	}
@@ -331,7 +407,7 @@ async function notifyFollowers({ pid, tid, event, actorUid, path }) {
 		type: NOTIFICATION_TYPE,
 		subject: title,
 		bodyShort: translator.compile(`post-follow:notification-${NOTIFICATION_KEYS[event]}`, displayName, title),
-		nid: `post-follow:${event}:${pid}:uid:${actorUid}`,
+		nid: nid,
 		pid: pid,
 		tid: tid,
 		path: path || `/post/${encodeURIComponent(pid)}`,
@@ -424,7 +500,7 @@ Plugin.onUserDelete = async function (hookData) {
 };
 
 // ---------------------------------------------------------------------------
-// Automatically follow own posts (user setting)
+// Automatic following (user settings)
 // ---------------------------------------------------------------------------
 
 function prefsFromSettings(settings) {
@@ -440,38 +516,67 @@ function prefsFromSettings(settings) {
 	return prefs;
 }
 
-Plugin.onPostSave = async function (hookData) {
-	const post = hookData && hookData.post;
-	const uid = post && parseInt(post.uid, 10);
-	if (!post || !post.pid || !uid || uid <= 0) {
+// Follows `pid` for `uid` when the user enabled the given automatic trigger
+// (own = posts I write, reply = posts I reply to or quote, bookmark = posts I bookmark).
+async function autoFollow(rawUid, rawPid, trigger) {
+	const uid = parseInt(rawUid, 10);
+	const pid = parsePid(rawPid);
+	if (!uid || uid <= 0 || !pid) {
 		return;
 	}
 	const settings = await db.getObjectFields(`user:${uid}:settings`, Object.values(AUTO_FOLLOW_FIELDS));
-	if (!settings || parseInt(settings[AUTO_FOLLOW_FIELDS.enabled], 10) !== 1) {
+	if (!settings || parseInt(settings[AUTO_FOLLOW_FIELDS[trigger]], 10) !== 1) {
+		return;
+	}
+	// Never overwrite the choices of a post that is already followed.
+	if (await db.isSetMember(followersKey(pid), uid)) {
 		return;
 	}
 	// Automatic following silently stops once the limit is reached.
 	if (await hasReachedFollowLimit(uid)) {
 		return;
 	}
-	await followPost(uid, post.pid, prefsFromSettings(settings));
+	await followPost(uid, pid, prefsFromSettings(settings));
+}
+
+Plugin.onPostSave = async function (hookData) {
+	const post = hookData && hookData.post;
+	if (!post || !post.pid) {
+		return;
+	}
+	await autoFollow(post.uid, post.pid, 'own');
+	// A reply (or a quote, which is a reply to a specific post) follows the post it answers.
+	if (post.toPid) {
+		await autoFollow(post.uid, post.toPid, 'reply');
+	}
+};
+
+Plugin.onPostBookmark = async function (hookData) {
+	if (!hookData || !hookData.pid) {
+		return;
+	}
+	await autoFollow(hookData.uid, hookData.pid, 'bookmark');
 };
 
 function renderAutoFollowSettings(settings) {
-	const enabled = parseInt(settings[AUTO_FOLLOW_FIELDS.enabled], 10) === 1;
 	const prefs = prefsFromSettings(settings);
 	const checked = value => (value ? ' checked' : '');
-	const eventRow = event => `
-		<div class="form-check">
-			<input class="form-check-input" type="checkbox" id="${AUTO_FOLLOW_FIELDS[event]}" data-property="${AUTO_FOLLOW_FIELDS[event]}"${checked(prefs[event])}>
-			<label class="form-check-label" for="${AUTO_FOLLOW_FIELDS[event]}">[[post-follow:event-${event}]]</label>
-		</div>`;
+	const isOn = field => parseInt(settings[field], 10) === 1;
 
-	return `
+	const switchRow = (trigger, labelKey) => `
 <div class="form-check form-switch mb-2">
-	<input class="form-check-input" type="checkbox" id="${AUTO_FOLLOW_FIELDS.enabled}" data-property="${AUTO_FOLLOW_FIELDS.enabled}"${checked(enabled)}>
-	<label class="form-check-label" for="${AUTO_FOLLOW_FIELDS.enabled}">[[post-follow:setting-auto-follow]]</label>
-</div>
+	<input class="form-check-input" type="checkbox" id="${AUTO_FOLLOW_FIELDS[trigger]}" data-property="${AUTO_FOLLOW_FIELDS[trigger]}"${checked(isOn(AUTO_FOLLOW_FIELDS[trigger]))}>
+	<label class="form-check-label" for="${AUTO_FOLLOW_FIELDS[trigger]}">[[post-follow:${labelKey}]]</label>
+</div>`;
+	const eventRow = event => `
+	<div class="form-check">
+		<input class="form-check-input" type="checkbox" id="${AUTO_FOLLOW_FIELDS[event]}" data-property="${AUTO_FOLLOW_FIELDS[event]}"${checked(prefs[event])}>
+		<label class="form-check-label" for="${AUTO_FOLLOW_FIELDS[event]}">[[post-follow:event-${event}]]</label>
+	</div>`;
+
+	return `${switchRow('own', 'setting-auto-follow')}
+${switchRow('reply', 'setting-auto-follow-reply')}
+${switchRow('bookmark', 'setting-auto-follow-bookmark')}
 <div class="ms-4 mb-3">
 	<div class="form-text mb-1">[[post-follow:setting-auto-events]]</div>
 	${EVENTS.map(eventRow).join('')}
@@ -499,8 +604,8 @@ Plugin.saveCustomSettings = async function (hookData) {
 		}
 	});
 	// Automatic following needs at least one event, otherwise it would be pointless.
-	if (parseInt(settings[AUTO_FOLLOW_FIELDS.enabled], 10) === 1 &&
-		!EVENTS.some(event => parseInt(settings[AUTO_FOLLOW_FIELDS[event]], 10) === 1)) {
+	const anyTrigger = AUTO_FOLLOW_TRIGGERS.some(trigger => parseInt(settings[AUTO_FOLLOW_FIELDS[trigger]], 10) === 1);
+	if (anyTrigger && !EVENTS.some(event => parseInt(settings[AUTO_FOLLOW_FIELDS[event]], 10) === 1)) {
 		settings[AUTO_FOLLOW_FIELDS.edit] = 1;
 	}
 	return hookData;
@@ -543,33 +648,104 @@ function toSnippet(html) {
 	return text.length > 240 ? `${text.slice(0, 240)}…` : text;
 }
 
+// Loads, for each pid, whether the post exists / is deleted and the state of its topic.
+async function loadPostInfo(pids) {
+	if (!pids.length) {
+		return [];
+	}
+	const postFields = await posts.getPostsFields(pids, ['pid', 'tid', 'deleted']);
+	const tids = [...new Set(postFields.filter(post => post && post.tid).map(post => post.tid))];
+	const topicFields = tids.length ?
+		await topics.getTopicsFields(tids, ['tid', 'cid', 'title', 'deleted', 'locked']) :
+		[];
+	const topicByTid = {};
+	topicFields.forEach((topic) => {
+		if (topic && topic.tid) {
+			topicByTid[topic.tid] = topic;
+		}
+	});
+
+	return pids.map((pid, i) => {
+		const post = postFields[i];
+		const exists = !!(post && post.pid);
+		const topic = exists && post.tid ? topicByTid[post.tid] || null : null;
+		return {
+			pid: pid,
+			exists: exists,
+			deleted: exists && parseInt(post.deleted, 10) === 1,
+			topic: topic,
+			topicDeleted: !!topic && parseInt(topic.deleted, 10) === 1,
+			topicLocked: !!topic && parseInt(topic.locked, 10) === 1,
+		};
+	});
+}
+
 async function renderFollowedPosts(req, res) {
 	const payload = res.locals.userData;
 	const page = Math.max(1, parseInt(req.query.page, 10) || 1);
 	const settings = await user.getSettings(req.uid);
 	const itemsPerPage = settings.postsPerPage;
+
+	const filterCid = parseInt(req.query.cid, 10) || 0;
+	const filterText = String(req.query.q || '').trim().slice(0, 100);
+
+	// Everything the user follows and may still read, newest follow first.
+	let pids = await db.getSortedSetRevRange(userPostsKey(payload.uid), 0, -1);
+	pids = await privileges.posts.filter('topics:read', pids, req.uid);
+	const info = await loadPostInfo(pids);
+
+	// Categories that appear in the list, for the filter drop-down.
+	const cids = [...new Set(info.filter(entry => entry.topic).map(entry => String(entry.topic.cid)))];
+	const categoryData = cids.length ? await categories.getCategoriesFields(cids, ['cid', 'name']) : [];
+	const pfCategories = categoryData
+		.filter(category => category && category.cid)
+		.map(category => ({
+			cid: category.cid,
+			name: category.name,
+			selected: parseInt(category.cid, 10) === filterCid,
+		}));
+
+	const needle = filterText.toLowerCase();
+	const matching = info.filter((entry) => {
+		if (filterCid && !(entry.topic && parseInt(entry.topic.cid, 10) === filterCid)) {
+			return false;
+		}
+		if (needle && !(entry.topic && String(entry.topic.title || '').toLowerCase().includes(needle))) {
+			return false;
+		}
+		return true;
+	});
+
 	const start = (page - 1) * itemsPerPage;
-	const stop = start + itemsPerPage - 1;
-	const key = userPostsKey(payload.uid);
+	const pageEntries = matching.slice(start, start + itemsPerPage);
+	const infoByPid = {};
+	pageEntries.forEach((entry) => {
+		infoByPid[entry.pid] = entry;
+	});
 
-	const [result, itemCount] = await Promise.all([
-		posts.getPostSummariesFromSet(key, req.uid, start, stop),
-		db.sortedSetCard(key),
-	]);
-
-	const items = result.posts || [];
+	const items = pageEntries.length ?
+		await posts.getPostSummaryByPids(pageEntries.map(entry => entry.pid), req.uid, { stripTags: false }) :
+		[];
 	const prefsList = items.length ? await db.getObjects(items.map(p => prefsKey(p.pid, payload.uid))) : [];
 	items.forEach((item, i) => {
 		const prefs = parsePrefs(prefsList[i]);
+		const entry = infoByPid[item.pid] || {};
 		item.pfFollowing = true;
 		item.pfEdit = prefs.edit;
 		item.pfDelete = prefs.delete;
 		item.pfRestore = prefs.restore;
+		item.pfPostDeleted = !!entry.deleted;
+		item.pfTopicDeleted = !!entry.topicDeleted;
+		item.pfTopicLocked = !!entry.topicLocked;
 		item.snippet = toSnippet(item.content);
 	});
 
 	payload.posts = items;
-	payload.pagination = pagination.create(page, Math.ceil(itemCount / itemsPerPage), req.query);
+	payload.pfCategories = pfCategories;
+	payload.pfQuery = filterText;
+	payload.pfFiltered = !!(filterCid || filterText);
+	payload.pfTotalFollowed = info.length;
+	payload.pagination = pagination.create(page, Math.ceil(matching.length / itemsPerPage), req.query);
 	payload.title = '[[post-follow:page-title]]';
 	payload.breadcrumbs = controllerHelpers.buildBreadcrumbs([
 		{ text: payload.username, url: `/user/${payload.userslug}` },
@@ -578,6 +754,9 @@ async function renderFollowedPosts(req, res) {
 
 	res.render('account/followed-posts', payload);
 }
+
+// Exposed only so the simulation tests can reach the page renderers.
+Plugin.__renderFollowedPostsForTest = renderFollowedPosts;
 
 // ---------------------------------------------------------------------------
 // Admin page
@@ -592,11 +771,15 @@ Plugin.addAdminNav = async function (header) {
 	return header;
 };
 
-function renderAdminPage(req, res) {
+async function renderAdminPage(req, res) {
+	const groupsData = await groups.getNonPrivilegeGroups('groups:createtime', 0, -1);
 	res.render('admin/plugins/post-follow', {
 		title: '[[post-follow:admin-title]]',
 		defaultMinEditChars: DEFAULT_MIN_EDIT_CHARS,
 		defaultMaxFollowedPosts: DEFAULT_MAX_FOLLOWED_POSTS,
+		groups: groupsData
+			.filter(group => group && group.name && !['guests', 'spiders'].includes(group.name))
+			.map(group => ({ name: group.name, displayName: group.displayName || group.name })),
 	});
 }
 
@@ -608,3 +791,5 @@ Plugin.addNotificationType = async function (data) {
 	data.types.push(`notificationType_${NOTIFICATION_TYPE}`);
 	return data;
 };
+
+Plugin.__renderAdminPageForTest = renderAdminPage;
