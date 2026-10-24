@@ -26,11 +26,15 @@
 
 					<div class="mb-3">
 						<label class="form-label" for="exemptGroups">{{tx("post-follow:admin-exempt-groups")}}</label>
-						<select id="exemptGroups" name="exemptGroups" class="form-select" multiple size="6">
+						<input type="hidden" id="exemptGroups" name="exemptGroups" data-key="exemptGroups">
+						<div class="border rounded p-2" style="max-height: 220px; overflow-y: auto;">
 							{{{ each groups }}}
-							<option value="{./name}">{./displayName}</option>
+							<div class="form-check">
+								<input class="form-check-input pf-exempt-group" type="checkbox" id="pf-exempt-{@index}" value="{./name}">
+								<label class="form-check-label" for="pf-exempt-{@index}">{./displayName}</label>
+							</div>
 							{{{ end }}}
-						</select>
+						</div>
 						<p class="form-text">{{tx("post-follow:admin-exempt-groups-help")}}</p>
 					</div>
 				</div>

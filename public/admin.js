@@ -7,7 +7,31 @@ define('admin/plugins/post-follow', ['settings', 'alerts', 'bootstrap'], functio
 
 	ACP.init = function () {
 		const form = $('.post-follow-settings');
-		settings.load('post-follow', form);
+		const hidden = form.find('#exemptGroups');
+		const boxes = form.find('.pf-exempt-group');
+
+		// Groups exempt from the limit: checkboxes, stored as a JSON list in a hidden field.
+		function syncFromHidden() {
+			let list = [];
+			try {
+				list = JSON.parse(hidden.val() || '[]');
+			} catch (e) {
+				list = [];
+			}
+			if (!Array.isArray(list)) {
+				list = [];
+			}
+			boxes.each(function () {
+				$(this).prop('checked', list.indexOf(this.value) !== -1);
+			});
+		}
+		function syncToHidden() {
+			const list = boxes.filter(':checked').map(function () { return this.value; }).get();
+			hidden.val(JSON.stringify(list));
+		}
+		boxes.on('change', syncToHidden);
+
+		settings.load('post-follow', form, syncFromHidden);
 
 		// Question-mark help bubbles: opened by hovering (mouse) or by tapping (touch devices).
 		// A tap focuses the button, which opens the bubble; tapping elsewhere closes it.
@@ -21,6 +45,7 @@ define('admin/plugins/post-follow', ['settings', 'alerts', 'bootstrap'], functio
 		});
 
 		$('#save').on('click', function () {
+			syncToHidden();
 			settings.save('post-follow', form, function () {
 				alerts.success('[[post-follow:admin-saved]]');
 			});
