@@ -33,6 +33,26 @@ NodeBB core already sends an edit notification to everyone who watches the whole
 
 A user who watches the topic but turned that notification type off, or who does not watch the topic at all, still receives this plugin's notifications for the posts they explicitly follow. This is what makes "all replies in the topic, plus edits of this one post" possible. Deletion and restoration notifications are only sent by this plugin, so they are never skipped.
 
+## Screenshots
+
+Red frames mark the parts added by this plugin inside NodeBB pages; personal details are blurred.
+
+**Bell and options on every post**
+
+![Bell next to the reply button](docs/screenshots/en-post-bell.png)
+
+**Posts I follow** (filter, bulk unfollow, per-post settings)
+
+![Followed posts page](docs/screenshots/en-followed-posts.png)
+
+**Account settings** (automatic following and the separate notification type)
+
+![User settings](docs/screenshots/en-user-settings.png)
+
+**Admin settings** (*ACP → Plugins → Post Follow*)
+
+![Admin settings](docs/screenshots/en-admin.png)
+
 ## Installation
 
 The plugin is not published on npm. Install it straight from GitHub:
