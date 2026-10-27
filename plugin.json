@@ -3,20 +3,82 @@
 	"url": "https://github.com/hershaleh/nodebb-plugin-post-follow",
 	"library": "./library.js",
 	"hooks": [
-		{ "hook": "static:app.load", "method": "init" },
-		{ "hook": "filter:admin.header.build", "method": "addAdminNav" },
-		{ "hook": "filter:user.profileMenu", "method": "addProfileMenu" },
-		{ "hook": "filter:helpers.getUserDataByUserSlug", "method": "addProfileCounts" },
-		{ "hook": "filter:user.notificationTypes", "method": "addNotificationType" },
-		{ "hook": "filter:user.customSettings", "method": "addCustomSettings" },
-		{ "hook": "filter:user.saveSettings", "method": "saveCustomSettings" },
-		{ "hook": "action:post.save", "method": "onPostSave" },
-		{ "hook": "action:post.bookmark", "method": "onPostBookmark" },
-		{ "hook": "action:post.edit", "method": "onPostEdit" },
-		{ "hook": "action:post.delete", "method": "onPostDelete" },
-		{ "hook": "action:post.restore", "method": "onPostRestore" },
-		{ "hook": "action:posts.purge", "method": "onPostsPurge" },
-		{ "hook": "static:user.delete", "method": "onUserDelete" }
+		{
+			"hook": "static:app.load",
+			"method": "init"
+		},
+		{
+			"hook": "filter:admin.header.build",
+			"method": "addAdminNav"
+		},
+		{
+			"hook": "filter:user.profileMenu",
+			"method": "addProfileMenu"
+		},
+		{
+			"hook": "filter:helpers.getUserDataByUserSlug",
+			"method": "addProfileCounts"
+		},
+		{
+			"hook": "filter:user.notificationTypes",
+			"method": "addNotificationType"
+		},
+		{
+			"hook": "filter:user.customSettings",
+			"method": "addCustomSettings"
+		},
+		{
+			"hook": "filter:user.saveSettings",
+			"method": "saveCustomSettings"
+		},
+		{
+			"hook": "action:post.save",
+			"method": "onPostSave"
+		},
+		{
+			"hook": "action:post.bookmark",
+			"method": "onPostBookmark"
+		},
+		{
+			"hook": "action:post.edit",
+			"method": "onPostEdit"
+		},
+		{
+			"hook": "action:post.delete",
+			"method": "onPostDelete"
+		},
+		{
+			"hook": "action:post.restore",
+			"method": "onPostRestore"
+		},
+		{
+			"hook": "action:posts.purge",
+			"method": "onPostsPurge"
+		},
+		{
+			"hook": "static:user.delete",
+			"method": "onUserDelete"
+		},
+		{
+			"hook": "action:topic.lock",
+			"method": "onTopicLock"
+		},
+		{
+			"hook": "action:topic.pin",
+			"method": "onTopicPin"
+		},
+		{
+			"hook": "action:topic.move",
+			"method": "onTopicMove"
+		},
+		{
+			"hook": "action:topic.edit",
+			"method": "onTopicEdit"
+		},
+		{
+			"hook": "static:api.routes",
+			"method": "addApiRoutes"
+		}
 	],
 	"scripts": [
 		"public/client.js"

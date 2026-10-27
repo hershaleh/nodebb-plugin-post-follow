@@ -4,8 +4,8 @@
 
 $(document).ready(function () {
 	require(['hooks', 'alerts', 'modals'], function (hooks, alerts, modals) {
-		const EVENTS = ['edit', 'delete', 'restore'];
-		const DEFAULT_PREFS = { edit: true, delete: false, restore: false };
+		const EVENTS = ['edit', 'delete', 'restore', 'reply', 'topic'];
+		const DEFAULT_PREFS = { edit: true, delete: false, restore: false, reply: false, topic: false };
 
 		// ---- widget state -------------------------------------------------
 
@@ -19,10 +19,10 @@ $(document).ready(function () {
 				.toggleClass('fa-solid', following)
 				.toggleClass('fa-regular', !following);
 
-			widget.find('[component="post-follow/options"]').toggleClass('hidden', !following);
-			if (!following) {
-				widget.find('[component="post-follow/menu"]').removeClass('show');
-			}
+			// The event choices only make sense while the post is followed;
+			// the bulk actions at the bottom of the menu are always available.
+			widget.find('[component="post-follow/event-row"], [component="post-follow/events-title"]')
+				.toggleClass('hidden', !following);
 
 			const prefs = state.prefs || DEFAULT_PREFS;
 			EVENTS.forEach(function (event) {
@@ -49,7 +49,13 @@ $(document).ready(function () {
 				return;
 			}
 
+			// Places where an admin switched the plugin off get no bell (unless already followed).
+			if (state.blocked && !state.following) {
+				return;
+			}
+
 			const prefs = state.prefs || DEFAULT_PREFS;
+			const author = postEl.find('a[data-username][data-uid]').first();
 			const html = await app.parseAndTranslate('partials/post-follow/wrap', {
 				posts: [{
 					pid: postEl.attr('data-pid'),
@@ -57,6 +63,10 @@ $(document).ready(function () {
 					pfEdit: !!prefs.edit,
 					pfDelete: !!prefs.delete,
 					pfRestore: !!prefs.restore,
+					pfReply: !!prefs.reply,
+					pfTopic: !!prefs.topic,
+					pfAuthorUid: postEl.attr('data-uid') || author.attr('data-uid') || 0,
+					pfAuthorName: author.attr('data-username') || '',
 				}],
 			});
 
@@ -168,6 +178,59 @@ $(document).ready(function () {
 					return alerts.error(err);
 				}
 				applyState(widget, res);
+			});
+		});
+
+
+		// Re-read the state of every bell on the page (after a bulk change).
+		function refreshStates() {
+			const widgets = $('[component="post-follow/widget"]');
+			const pids = widgets.map(function () { return $(this).attr('data-pid'); }).get();
+			if (!pids.length) {
+				return;
+			}
+			socket.emit('plugins.postFollow.getStates', { pids: pids.slice(0, 200) }, function (err, res) {
+				if (err || !res) {
+					return;
+				}
+				widgets.each(function () {
+					const widget = $(this);
+					const state = res.states && res.states[widget.attr('data-pid')];
+					if (state) {
+						applyState(widget, state);
+					}
+				});
+			});
+		}
+
+		// Menu opened: name the author in the bulk entry, hide it when it would repeat "my posts".
+		$(document).on('show.bs.dropdown', '[component="post-follow/options"]', function () {
+			const menu = $(this).closest('[component="post-follow/widget"]').find('[component="post-follow/menu"]');
+			const authorUid = parseInt(menu.attr('data-author-uid'), 10) || 0;
+			const authorName = menu.attr('data-author-name') || '';
+			const own = authorUid > 0 && authorUid === parseInt(app.user.uid, 10);
+			menu.find('[component="post-follow/author-name"]').text(authorName ? '(' + authorName + ')' : '');
+			menu.find('[data-scope="author"]').closest('li').toggleClass('hidden', own || authorUid <= 0);
+			menu.find('[data-scope="mine"]').closest('li').toggleClass('hidden', false);
+		});
+
+		// Bulk follow inside the topic of this post: my posts / this author's posts / all posts.
+		$(document).on('click', '[component="post-follow/bulk"]', function (e) {
+			e.preventDefault();
+			const widget = $(this).closest('[component="post-follow/widget"]');
+			const payload = Object.assign({ pid: widget.attr('data-pid'), scope: $(this).attr('data-scope') }, readPrefs(widget));
+			if (!EVENTS.some(function (event) { return payload[event]; })) {
+				payload.edit = true;
+			}
+			socket.emit('plugins.postFollow.followBulk', payload, function (err, res) {
+				if (err) {
+					return alerts.error(err);
+				}
+				alerts.success('[[post-follow:bulk-done, ' + res.count + ']]', 3000);
+				if (res.skipped) {
+					alerts.warning('[[post-follow:bulk-skipped, ' + res.skipped + ']]', 6000);
+				}
+				refreshStates();
 			});
 		});
 

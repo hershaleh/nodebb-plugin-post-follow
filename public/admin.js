@@ -1,35 +1,41 @@
 'use strict';
 
-/* globals $, define, window */
+/* globals $, define, window, socket */
 
 define('admin/plugins/post-follow', ['settings', 'alerts', 'bootstrap'], function (settings, alerts, bootstrap) {
 	const ACP = {};
 
 	ACP.init = function () {
 		const form = $('.post-follow-settings');
-		const hidden = form.find('#exemptGroups');
-		const boxes = form.find('.pf-exempt-group');
+		const lists = form.find('.pf-checklist');
 
-		// Groups exempt from the limit: checkboxes, stored as a JSON list in a hidden field.
+		// Check-lists (groups, categories) are stored as a JSON list in a hidden field.
 		function syncFromHidden() {
-			let list = [];
-			try {
-				list = JSON.parse(hidden.val() || '[]');
-			} catch (e) {
-				list = [];
-			}
-			if (!Array.isArray(list)) {
-				list = [];
-			}
-			boxes.each(function () {
-				$(this).prop('checked', list.indexOf(this.value) !== -1);
+			lists.each(function () {
+				const hidden = form.find('#' + $(this).attr('data-target'));
+				let list = [];
+				try {
+					list = JSON.parse(hidden.val() || '[]');
+				} catch (e) {
+					list = [];
+				}
+				if (!Array.isArray(list)) {
+					list = [];
+				}
+				list = list.map(String);
+				$(this).find('.pf-check').each(function () {
+					$(this).prop('checked', list.indexOf(String(this.value)) !== -1);
+				});
 			});
 		}
 		function syncToHidden() {
-			const list = boxes.filter(':checked').map(function () { return this.value; }).get();
-			hidden.val(JSON.stringify(list));
+			lists.each(function () {
+				const hidden = form.find('#' + $(this).attr('data-target'));
+				const chosen = $(this).find('.pf-check:checked').map(function () { return this.value; }).get();
+				hidden.val(JSON.stringify(chosen));
+			});
 		}
-		boxes.on('change', syncToHidden);
+		lists.on('change', '.pf-check', syncToHidden);
 
 		settings.load('post-follow', form, syncFromHidden);
 
@@ -46,8 +52,28 @@ define('admin/plugins/post-follow', ['settings', 'alerts', 'bootstrap'], functio
 
 		$('#save').on('click', function () {
 			syncToHidden();
+			// The settings module serializes every checkbox in the form (and would store the
+			// list boxes as "off"), so lift the lists out of the form while it saves.
+			const stash = [];
+			lists.each(function () {
+				const placeholder = $('<span></span>');
+				$(this).before(placeholder);
+				stash.push([placeholder, $(this).detach()]);
+			});
 			settings.save('post-follow', form, function () {
 				alerts.success('[[post-follow:admin-saved]]');
+			});
+			stash.forEach(function (pair) {
+				pair[0].replaceWith(pair[1]);
+			});
+		});
+
+		$('#pf-run-cleanup').on('click', function () {
+			socket.emit('plugins.postFollow.runCleanup', {}, function (err, res) {
+				if (err) {
+					return alerts.error(err);
+				}
+				alerts.success('[[post-follow:admin-cleanup-done, ' + res.posts + ', ' + res.follows + ']]');
 			});
 		});
 	};

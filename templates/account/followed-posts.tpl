@@ -18,6 +18,12 @@
 		<option value="{./cid}" {{{ if ./selected }}}selected{{{ end }}}>{./name}</option>
 		{{{ end }}}
 	</select>
+	<select name="sort" class="form-select form-select-sm w-auto" aria-label="{{tx("post-follow:sort-label")}}">
+		<option value="followed" {{{ if pfSortFollowed }}}selected{{{ end }}}>{{tx("post-follow:sort-followed")}}</option>
+		<option value="edited" {{{ if pfSortEdited }}}selected{{{ end }}}>{{tx("post-follow:sort-edited")}}</option>
+		<option value="posted" {{{ if pfSortPosted }}}selected{{{ end }}}>{{tx("post-follow:sort-posted")}}</option>
+		<option value="topic" {{{ if pfSortTopic }}}selected{{{ end }}}>{{tx("post-follow:sort-topic")}}</option>
+	</select>
 	<input type="text" name="q" value="{pfQuery}" class="form-control form-control-sm w-auto" placeholder="{{tx("post-follow:filter-topic-placeholder")}}">
 	<button type="submit" class="btn btn-sm btn-primary">{{tx("post-follow:filter-apply")}}</button>
 	{{{ if pfFiltered }}}
