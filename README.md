@@ -81,6 +81,31 @@ Written for NodeBB 4.x (checked against the 4.16 source) and the Bootstrap 5 bas
 
 `en-GB`, `he`, `ar`, `ru` and `es` are included. The Arabic, Russian and Spanish texts were translated by a machine, so corrections from native speakers are very welcome: edit `languages/<code>/post-follow.json` and open a pull request, or open an issue. To add another language, copy `languages/en-GB` to a new folder named after the NodeBB language code and translate the values (keep the `%1`, `%2`, `%3` placeholders and the `<strong>` tags). Missing languages fall back to English.
 
+## Testing
+
+```bash
+npm test
+```
+
+This runs two kinds of fast checks with Node's built-in test runner (no dependencies, no NodeBB needed):
+
+- **Static checks** (`test/static.test.js`): syntax of every JS file, `plugin.json` hooks match the code, all files exist, every language has the same keys and placeholders, every translation key used exists.
+- **Logic tests** (`test/logic.test.js`): the real `library.js` runs against a **fake, in-memory NodeBB** (`test/helpers/mock-nodebb.js`: fake database, fake user/topic/post/notification modules).
+
+> **These logic tests do not prove that the plugin works inside NodeBB.** They only check the plugin's own logic. Anything that depends on real NodeBB behaviour (hook timing, notification delivery, templates, routes, permissions, the browser UI) is not covered by them.
+
+### Integration tests (real NodeBB)
+
+`test/integration/` contains mocha tests that run inside a real NodeBB with a real Redis database: real hooks, real posts and topics, real notifications, real HTTP routes. They are started with:
+
+```bash
+NODEBB_DIR=/path/to/nodebb npm run test:integration
+```
+
+`NODEBB_DIR` must be a NodeBB checkout that is set up, has a separate `test_database` in `config.json` (**it is emptied by the tests**), has `"test_plugins": ["nodebb-plugin-post-follow"]` in `config.json`, and has this plugin installed in its `node_modules`. The runner checks all of this and tells you what is missing. `.github/workflows/test.yml` does the whole setup automatically on every push.
+
+The browser UI (button, dropdown, ACP popover) is not covered by any automated test.
+
 ## License
 
 MIT

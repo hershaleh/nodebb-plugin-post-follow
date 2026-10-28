@@ -1,0 +1,108 @@
+name: Tests
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+    inputs:
+      nodebb_ref:
+        description: 'NodeBB branch or tag for the integration tests'
+        default: 'master'
+
+permissions:
+  contents: read
+
+jobs:
+  # Fast checks. NOTE: the "logic" tests run the real plugin code against a FAKE NodeBB
+  # (test/helpers/mock-nodebb.js). They do not prove that the plugin works inside NodeBB;
+  # that is what the "integration" job below is for.
+  fast:
+    name: Syntax, static and logic tests (fake NodeBB)
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node: [22, 24]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+      - run: npm test
+
+  integration:
+    name: Integration tests (real NodeBB + Redis)
+    runs-on: ubuntu-latest
+    env:
+      NODEBB_REF: ${{ github.event.inputs.nodebb_ref || 'master' }}
+    services:
+      redis:
+        image: 'redis:7'
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 6379:6379
+    steps:
+      - name: Check out the plugin
+        uses: actions/checkout@v4
+        with:
+          path: plugin
+
+      - name: Check out NodeBB
+        uses: actions/checkout@v4
+        with:
+          repository: NodeBB/NodeBB
+          ref: ${{ env.NODEBB_REF }}
+          path: nodebb
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install NodeBB
+        working-directory: nodebb
+        run: |
+          cp install/package.json package.json
+          npm install --no-audit --no-fund
+
+      - name: Set up NodeBB (Redis, separate test database)
+        working-directory: nodebb
+        env:
+          SETUP: >-
+            {
+              "url": "http://127.0.0.1:4567",
+              "secret": "abcdef",
+              "admin:username": "admin",
+              "admin:email": "test@example.org",
+              "admin:password": "hAN3Eg8W",
+              "admin:password:confirm": "hAN3Eg8W",
+              "database": "redis",
+              "redis:host": "127.0.0.1",
+              "redis:port": 6379,
+              "redis:password": "",
+              "redis:database": 0
+            }
+          CI: >-
+            {
+              "host": "127.0.0.1",
+              "database": 1,
+              "port": 6379
+            }
+        run: node app --setup="${SETUP}" --ci="${CI}"
+
+      - name: Install the plugin into NodeBB and activate it for the tests
+        working-directory: nodebb
+        run: |
+          npm install --no-audit --no-fund ../plugin
+          node -e "
+            const fs = require('fs');
+            const config = JSON.parse(fs.readFileSync('config.json', 'utf8'));
+            config.test_plugins = ['nodebb-plugin-post-follow'];
+            fs.writeFileSync('config.json', JSON.stringify(config, null, 2));
+          "
+
+      - name: Run the integration tests
+        working-directory: plugin
+        run: NODEBB_DIR="$GITHUB_WORKSPACE/nodebb" npm run test:integration
